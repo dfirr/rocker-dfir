@@ -3,8 +3,8 @@ services:
     build:
       context: .
       args:
-        - R_PACKAGES=$R_PACKAGES
-        - GH_PACKAGES=$GH_PACKAGES
+        - R_PACKAGES_FILE=$R_PACKAGES_FILE
+        - GH_PACKAGES_FILE=$GH_PACKAGES_FILE
     container_name: rss
     environment:
       - PASSWORD=${PASSWORD:?PASSWORD is required}

@@ -1,0 +1,4 @@
+# One GitHub package per line (owner/repo)
+hrbrmstr/iptools
+dfirr/astools
+Ironholds/rgeolocate

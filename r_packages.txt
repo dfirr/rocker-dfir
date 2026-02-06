@@ -1,0 +1,11 @@
+# One CRAN package per line
+pak
+summarytools
+janitor
+patchwork
+ggside
+scales
+ggnewscale
+webreadr
+reticulate
+nanoparquet

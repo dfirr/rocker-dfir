@@ -19,7 +19,7 @@ Rocker (`rocker/tidyverse`) based DFIR-ready R environment with optional CRAN an
 
 3. Edit `.env`:
    - Set `PASSWORD` (required)
-   - Optionally set `R_PACKAGES` (CRAN) and `GH_PACKAGES` (GitHub)
+   - Edit `r_packages.txt` / `gh_packages.txt` for package lists
    - Adjust bind paths if needed
 
 ## Build and Run
@@ -37,8 +37,8 @@ Access RStudio at `http://localhost:8787` and log in as user `rstudio` with `PAS
 ## Environment Variables (.env)
 
 - `PASSWORD` (required): RStudio password for user `rstudio`
-- `R_PACKAGES`: space-separated CRAN packages installed via `install2.r`
-- `GH_PACKAGES`: space-separated GitHub packages in `owner/repo` form, installed via `installGithub.r`
+- `R_PACKAGES_FILE`: CRAN package list file (one per line)
+- `GH_PACKAGES_FILE`: GitHub package list file (one per line)
 - `CASES_DIR`: host path mounted to `/home/rstudio/cases`
 - `RSTUDIO_CONFIG_DIR`: host path mounted to `/home/rstudio/.config`
 - `RSTUDIO_RSERVER_CONF`: host file mounted to `/etc/rstudio/rserver.conf`
