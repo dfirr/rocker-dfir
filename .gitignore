@@ -1,0 +1,6 @@
+.env
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj.user
+rstudio_config/
