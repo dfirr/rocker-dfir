@@ -1,18 +1,19 @@
 # One CRAN package per line
-# Python
-reticulate
-# Package Managing
+# Infrastructure
 pak
 pacman
-# EDA
-summarytools
+reticulate
 # Import
+webreadr
 httr2
-nanoparquet
 # Tidy
 janitor
+# Model
+ellmer
 # Visualise
 scales
 ggnewscale
 ggside
 patchwork
+# Communicate
+summarytools

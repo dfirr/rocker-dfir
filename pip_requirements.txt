@@ -1,0 +1,2 @@
+# Python packages for reticulate (one per line)
+msticpy[splunk]
