@@ -4,3 +4,4 @@
 .Ruserdata
 *.Rproj.user
 rstudio_config/
+msticpy_config/msticpyconfig.yaml

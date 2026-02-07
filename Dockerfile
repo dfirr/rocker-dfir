@@ -44,3 +44,12 @@ RUN chown -R rstudio:rstudio "${RETICULATE_VENV}" \
 
 # Set reticulate Python path
 ENV RETICULATE_PYTHON="${RETICULATE_VENV}/bin/python"
+
+# Install Python packages for reticulate
+COPY pip_requirements.txt /tmp/pip_requirements.txt
+RUN uv pip install --python "${RETICULATE_VENV}/bin/python" -r /tmp/pip_requirements.txt \
+ && rm -f /tmp/pip_requirements.txt
+
+# Ensure MSTICPy config directory exists for rstudio
+RUN mkdir -p /home/rstudio/.msticpy \
+ && chown -R rstudio:rstudio /home/rstudio/.msticpy

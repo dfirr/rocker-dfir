@@ -1,6 +1,6 @@
 # rocker-dfir
 
-Rocker (`rocker/tidyverse`) based DFIR-ready R environment with optional CRAN and GitHub packages, plus a reticulate Python setup.
+Rocker (`rocker/tidyverse`) based DFIR-ready R environment with CRAN/GitHub packages, plus a reticulate Python setup that can connect to Splunk via MSTICPy.
 
 ## Requirements
 
@@ -12,6 +12,7 @@ Rocker (`rocker/tidyverse`) based DFIR-ready R environment with optional CRAN an
 1. Create required host paths (already created in this repo by default):
    - `rstudio_config/`
    - `rstudio_etc/rserver.conf`
+   - `msticpy_config/msticpyconfig.yaml` (copy from sample)
    - `~/cases/` (or another path set in `.env`)
 
 2. Create `.env` from the sample:
@@ -20,6 +21,7 @@ Rocker (`rocker/tidyverse`) based DFIR-ready R environment with optional CRAN an
 3. Edit `.env`:
    - Set `PASSWORD` (required)
    - Edit `r_packages.txt` / `gh_packages.txt` for package lists
+   - Copy `msticpy_config/msticpyconfig.yaml.sample` to `msticpy_config/msticpyconfig.yaml` and fill Splunk details
    - Adjust bind paths if needed
 
 ## Build and Run
@@ -34,6 +36,23 @@ docker compose --env-file .env up -d
 
 Access RStudio at `http://localhost:8787` and log in as user `rstudio` with `PASSWORD`.
 
+## Splunk Connection (MSTICPy)
+
+1. Copy and edit the config:
+   - `cp msticpy_config/msticpyconfig.yaml.sample msticpy_config/msticpyconfig.yaml`
+   - Set `host`, `port`, and authentication
+   - For security, prefer `bearer_token` over `password` when possible
+
+2. Choose the `host` value:
+   - Splunk Cloud: use the cloud host name.
+   - Local Splunk: use your host IP (Docker Desktop may support `host.docker.internal`, but Linux often does not).
+
+   To get the host IP from inside the container:
+   - `docker exec -t rss bash -lc "/opt/r/bin/python - <<'PY'\nimport socket, struct\nwith open('/proc/net/route') as f:\n    for line in f.readlines()[1:]:\n        fields = line.strip().split()\n        if fields[1] != '00000000':\n            continue\n        gw_hex = fields[2]\n        gw = socket.inet_ntoa(struct.pack('<L', int(gw_hex, 16)))\n        print(gw)\n        break\nPY"`
+
+3. Test the connection:
+   - `docker exec -t rss bash -lc "MSTICPYCONFIG=/home/rstudio/.msticpy/msticpyconfig.yaml /opt/r/bin/python - <<'PY'\nfrom msticpy.data import QueryProvider\nqp = QueryProvider('Splunk')\nqp.connect()\nprint('connected')\nPY"`
+
 ## Environment Variables (.env)
 
 - `PASSWORD` (required): RStudio password for user `rstudio`
@@ -42,6 +61,7 @@ Access RStudio at `http://localhost:8787` and log in as user `rstudio` with `PAS
 - `CASES_DIR`: host path mounted to `/home/rstudio/cases`
 - `RSTUDIO_CONFIG_DIR`: host path mounted to `/home/rstudio/.config`
 - `RSTUDIO_RSERVER_CONF`: host file mounted to `/etc/rstudio/rserver.conf`
+- `MSTICPY_CONFIG_FILE`: host file mounted to `/home/rstudio/.msticpy/msticpyconfig.yaml`
 
 ## Notes
 

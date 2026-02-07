@@ -1,0 +1,17 @@
+# MSTICPy config (Splunk) - copy to msticpyconfig.yaml and fill values
+# See: https://msticpy.readthedocs.io/ for full options
+
+DataProviders:
+  Splunk:
+    Args:
+      host: "splunk_host"
+      port: "8089"
+      username: "splunk_user"
+      password: "splunk_password"
+      # Prefer bearer_token over password when possible
+      # bearer_token: "<JWT>"
+      # http_scheme: "https"
+      # verify: true
+      # owner: "admin"
+      # app: "search"
+      # sharing: "user"
