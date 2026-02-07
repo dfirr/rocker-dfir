@@ -45,13 +45,36 @@ Access RStudio at `http://localhost:8787` and log in as user `rstudio` with `PAS
 
 2. Choose the `host` value:
    - Splunk Cloud: use the cloud host name.
-   - Local Splunk: use your host IP (Docker Desktop may support `host.docker.internal`, but Linux often does not).
+   - Splunk Enterprise (on-prem/remote): use the server host name or IP.
+   - Local Docker Splunk: use your host IP (Docker Desktop may support `host.docker.internal`, but Linux often does not).
 
-   To get the host IP from inside the container:
-   - `docker exec -t rss bash -lc "/opt/r/bin/python - <<'PY'\nimport socket, struct\nwith open('/proc/net/route') as f:\n    for line in f.readlines()[1:]:\n        fields = line.strip().split()\n        if fields[1] != '00000000':\n            continue\n        gw_hex = fields[2]\n        gw = socket.inet_ntoa(struct.pack('<L', int(gw_hex, 16)))\n        print(gw)\n        break\nPY"`
+   To get the host IP from inside the container (Linux):
+   - Run:
+```bash
+docker exec -t rss bash -lc "/opt/r/bin/python - <<'PY'
+import socket, struct
+with open('/proc/net/route') as f:
+    for line in f.readlines()[1:]:
+        fields = line.strip().split()
+        if fields[1] != '00000000':
+            continue
+        gw_hex = fields[2]
+        gw = socket.inet_ntoa(struct.pack('<L', int(gw_hex, 16)))
+        print(gw)
+        break
+PY"
+```
 
 3. Test the connection:
-   - `docker exec -t rss bash -lc "MSTICPYCONFIG=/home/rstudio/.msticpy/msticpyconfig.yaml /opt/r/bin/python - <<'PY'\nfrom msticpy.data import QueryProvider\nqp = QueryProvider('Splunk')\nqp.connect()\nprint('connected')\nPY"`
+   - Run:
+```bash
+docker exec -t rss bash -lc "MSTICPYCONFIG=/home/rstudio/.msticpy/msticpyconfig.yaml /opt/r/bin/python - <<'PY'
+from msticpy.data import QueryProvider
+qp = QueryProvider('Splunk')
+qp.connect()
+print('connected')
+PY"
+```
 
 ## Environment Variables (.env)
 
@@ -67,4 +90,4 @@ Access RStudio at `http://localhost:8787` and log in as user `rstudio` with `PAS
 
 - GitHub packages require network access during build.
 - `installGithub.r` comes from the Rocker base image (littler).
-- If you change `R_PACKAGES` or `GH_PACKAGES`, rebuild the image.
+- If you change `r_packages.txt` or `gh_packages.txt`, rebuild the image.
