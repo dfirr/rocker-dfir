@@ -6,3 +6,6 @@
 rstudio_config/*
 !rstudio_config/
 msticpy_config/msticpyconfig.yaml
+corp_ca/*
+!corp_ca/
+!corp_ca/.gitkeep
