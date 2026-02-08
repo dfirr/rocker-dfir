@@ -54,7 +54,7 @@ RUN uv pip install --python "${RETICULATE_VENV}/bin/python" -r /tmp/pip_requirem
 RUN mkdir -p /home/rstudio/.msticpy \
  && chown -R rstudio:rstudio /home/rstudio/.msticpy
 
-# Corporate CA trust (runtime)
+# Corporate CA trust (build time)
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 ENV SSL_CERT_DIR=/etc/ssl/certs
 ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
@@ -62,7 +62,7 @@ ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 ENV GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt
 ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt
 ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
-
-COPY corp-ca-entrypoint.sh /usr/local/bin/corp-ca-entrypoint.sh
-RUN chmod +x /usr/local/bin/corp-ca-entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/corp-ca-entrypoint.sh"]
+COPY corp_ca/ /usr/local/share/ca-certificates/corp/
+RUN if find /usr/local/share/ca-certificates/corp -type f -name '*.crt' -print -quit | grep -q .; then \
+      update-ca-certificates; \
+    fi

@@ -23,10 +23,6 @@ services:
         target: /etc/rstudio/rserver.conf
         read_only: true
       - type: bind
-        source: "${CORP_CA_DIR:?CORP_CA_DIR is required}"
-        target: /usr/local/share/ca-certificates/corp
-        read_only: true
-      - type: bind
         source: "${MSTICPY_CONFIG_FILE:?MSTICPY_CONFIG_FILE is required}"
         target: /home/rstudio/.msticpy/msticpyconfig.yaml
     restart: always

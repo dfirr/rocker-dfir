@@ -23,7 +23,7 @@ Rocker (`rocker/tidyverse`) based DFIR-ready R environment with CRAN/GitHub pack
    - Set `PASSWORD` (required)
    - Edit `r_packages.txt` / `gh_packages.txt` for package lists
    - Copy `msticpy_config/msticpyconfig.yaml.sample` to `msticpy_config/msticpyconfig.yaml` and fill Splunk details
-   - If required, put corporate CA `.crt` files under `corp_ca/`
+   - If required, put corporate CA `.crt` files under `corp_ca/` and rebuild the image
    - Adjust bind paths if needed
 
 ## Build and Run
@@ -86,11 +86,10 @@ PY"
 - `CASES_DIR`: host path mounted to `/home/rstudio/cases`
 - `RSTUDIO_CONFIG_DIR`: host path mounted to `/home/rstudio/.config`
 - `RSTUDIO_RSERVER_CONF`: host file mounted to `/etc/rstudio/rserver.conf`
-- `CORP_CA_DIR`: host directory mounted to `/usr/local/share/ca-certificates/corp`
 - `MSTICPY_CONFIG_FILE`: host file mounted to `/home/rstudio/.msticpy/msticpyconfig.yaml`
 
 ## Notes
 
 - GitHub packages require network access during build.
 - `installGithub.r` comes from the Rocker base image (littler).
-- If you change `r_packages.txt` or `gh_packages.txt`, rebuild the image.
+- If you change `r_packages.txt`, `gh_packages.txt`, or `corp_ca/*.crt`, rebuild the image.
