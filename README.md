@@ -12,7 +12,7 @@ Rocker (`rocker/tidyverse`) based DFIR-ready R environment with CRAN/GitHub pack
 1. Create required host paths (already created in this repo by default):
    - `rstudio_config/`
    - `rstudio_etc/rserver.conf`
-   - `corp_ca/` (place corporate root CA `.crt` files here)
+   - `corp_ca/` (optional; use this only in SSL/TLS inspection or internal CA environments, and place `.crt` files here)
    - `msticpy_config/msticpyconfig.yaml` (copy from sample)
    - `~/cases/` (or another path set in `.env`)
 
@@ -23,7 +23,7 @@ Rocker (`rocker/tidyverse`) based DFIR-ready R environment with CRAN/GitHub pack
    - Set `PASSWORD` (required)
    - Edit `r_packages.txt` / `gh_packages.txt` for package lists
    - Copy `msticpy_config/msticpyconfig.yaml.sample` to `msticpy_config/msticpyconfig.yaml` and fill Splunk details
-   - Put corporate CA `.crt` files under `corp_ca/` if needed
+   - If required, put corporate CA `.crt` files under `corp_ca/`
    - Adjust bind paths if needed
 
 ## Build and Run
