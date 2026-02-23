@@ -4,7 +4,6 @@ pak
 pacman
 reticulate
 # Import
-webreadr
 httr2
 # Tidy
 janitor

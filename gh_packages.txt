@@ -1,4 +1,5 @@
 # One GitHub package per line (owner/repo)
 hrbrmstr/iptools
+Ironholds/webreadr
 dfirr/astools
 Ironholds/rgeolocate
