@@ -4,10 +4,12 @@ FROM rocker/tidyverse:latest
 # Install Japanese fonts and required tools
 RUN apt update && \
     apt install --no-install-recommends -y \
+        acl \
         ca-certificates \
         bzip2 unzip wget \
         libpng-dev libmagick++-dev \
         python3 python3-pip python3-venv \
+        openssh-client \
         git gh curl jq \
         fonts-ipafont \
         tini \
@@ -63,6 +65,7 @@ COPY pip_requirements.txt /tmp/pip_requirements.txt
 RUN uv pip install --python "${RETICULATE_VENV}/bin/python" -r /tmp/pip_requirements.txt \
  && rm -f /tmp/pip_requirements.txt
 
-# Ensure MSTICPy config directory exists for rstudio
-RUN mkdir -p /home/rstudio/.msticpy \
- && chown -R rstudio:rstudio /home/rstudio/.msticpy
+# Provision multi-user accounts and homes at container startup
+COPY container/init/30-provision-users.sh /etc/cont-init.d/30-provision-users
+RUN chmod +x /etc/cont-init.d/30-provision-users \
+ && mkdir -p /etc/rstudio/skel-config /etc/rstudio/skel-msticpy /srv/rstudio-home /srv/cases

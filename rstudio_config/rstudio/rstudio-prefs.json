@@ -1,0 +1,22 @@
+{
+    "default_project_location": "~/shared_cases",
+    "initial_working_directory": "~/shared_cases",
+    "posix_terminal_shell": "bash",
+    "server_editor_font_enabled": true,
+    "server_editor_font": "HackGenConsole-Regular",
+    "load_workspace": false,
+    "default_open_project_location": "~/shared_cases",
+    "font_size_points": 11,
+    "highlight_selected_line": true,
+    "show_invisibles": true,
+    "scroll_past_end_of_document": true,
+    "highlight_r_function_calls": true,
+    "rainbow_parentheses": true,
+    "editor_theme": "Cobalt",
+    "jobs_tab_visibility": "shown",
+    "always_save_history": false,
+    "insert_native_pipe_operator": true,
+    "save_workspace": "never",
+    "python_type": "virtualenv",
+    "python_path": "/opt/r/bin/python"
+}
