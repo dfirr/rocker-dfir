@@ -4,7 +4,7 @@ Rocker (`rocker/tidyverse`) based DFIR-ready R environment with CRAN/GitHub pack
 
 ## Requirements
 
-- Docker + Docker Compose v2
+- Docker Engine with the `docker compose` plugin
 - A host directory for cases (default: `~/cases`)
 
 ## Setup
@@ -27,6 +27,8 @@ Rocker (`rocker/tidyverse`) based DFIR-ready R environment with CRAN/GitHub pack
    - Adjust bind paths if needed
 
 ## Build and Run
+
+The Compose file in this repository is `compose.yaml`.
 
 ```bash
 cd /path/to/rocker-dfir
