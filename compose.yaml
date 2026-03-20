@@ -7,36 +7,22 @@ services:
         - GH_PACKAGES_FILE=$GH_PACKAGES_FILE
     container_name: rss
     environment:
-      - USERID=${RSTUDIO_BASE_UID:-999}
-      - GROUPID=${RSTUDIO_BASE_GID:-999}
-      - SHARED_CASES_GROUP_GID=${SHARED_CASES_GROUP_GID:-}
+      - PASSWORD=${PASSWORD:?PASSWORD is required}
       - TZ=UTC
     ports:
       - 8787:8787
     volumes:
       - type: bind
         source: "${RSTUDIO_CONFIG_DIR:?RSTUDIO_CONFIG_DIR is required}"
-        target: /etc/rstudio/skel-config
-        read_only: true
+        target: /home/rstudio/.config
       - type: bind
-        source: "${RSTUDIO_USERS_FILE:?RSTUDIO_USERS_FILE is required}"
-        target: /etc/rstudio/users.conf
-        read_only: true
-      - type: bind
-        source: "${RSTUDIO_HOME_ROOT:?RSTUDIO_HOME_ROOT is required}"
-        target: /srv/rstudio-home
-      - type: bind
-        source: "${CASES_ROOT_DIR:?CASES_ROOT_DIR is required}"
-        target: /srv/cases
-      - type: bind
-        source: "${SHARED_CASES_DIR:?SHARED_CASES_DIR is required}"
-        target: /srv/shared-cases
+        source: "${CASES_DIR:?CASES_DIR is required}"
+        target: /home/rstudio/cases
       - type: bind
         source: "${RSTUDIO_RSERVER_CONF:?RSTUDIO_RSERVER_CONF is required}"
         target: /etc/rstudio/rserver.conf
         read_only: true
       - type: bind
-        source: "${MSTICPY_CONFIG_DIR:?MSTICPY_CONFIG_DIR is required}"
-        target: /etc/rstudio/skel-msticpy
-        read_only: true
+        source: "${MSTICPY_CONFIG_FILE:?MSTICPY_CONFIG_FILE is required}"
+        target: /home/rstudio/.msticpy/msticpyconfig.yaml
     restart: always
