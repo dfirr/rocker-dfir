@@ -21,12 +21,12 @@ Use this when one person will use the container.
 Files:
 
 - [compose.yaml](/home/swat/docker/2602rockerdfir/compose.yaml)
-- [.env.single.sample](/home/swat/docker/2602rockerdfir/.env.single.sample)
+- [.env.sample](/home/swat/docker/2602rockerdfir/.env.sample)
 
 Setup:
 
 1. Create `.env` from the single-user sample:
-   - `cp .env.single.sample .env`
+   - `cp .env.sample .env`
 2. Create `msticpy_config/msticpyconfig.yaml` from the sample:
    - `cp msticpy_config/msticpyconfig.yaml.sample msticpy_config/msticpyconfig.yaml`
 3. Edit `.env`:
@@ -48,13 +48,13 @@ Use this when several Linux users should log in separately and keep host-aligned
 Files:
 
 - [compose.multi.yaml](/home/swat/docker/2602rockerdfir/compose.multi.yaml)
-- [.env.sample](/home/swat/docker/2602rockerdfir/.env.sample)
+- [.env.multi.sample](/home/swat/docker/2602rockerdfir/.env.multi.sample)
 - [rstudio_users/users.conf.sample](/home/swat/docker/2602rockerdfir/rstudio_users/users.conf.sample)
 
 Setup:
 
 1. Create `.env` from the multi-user sample:
-   - `cp .env.sample .env`
+   - `cp .env.multi.sample .env`
 2. Create the runtime inputs:
    - `cp rstudio_users/users.conf.sample rstudio_users/users.conf`
    - `cp msticpy_config/msticpyconfig.yaml.sample msticpy_config/msticpyconfig.yaml`
@@ -193,7 +193,7 @@ PY"
 
 ## Config Files
 
-Single-user mode variables live in [.env.single.sample](/home/swat/docker/2602rockerdfir/.env.single.sample):
+Single-user mode variables live in [.env.sample](/home/swat/docker/2602rockerdfir/.env.sample):
 
 - `PASSWORD`
 - `CASES_DIR`
@@ -201,7 +201,7 @@ Single-user mode variables live in [.env.single.sample](/home/swat/docker/2602ro
 - `RSTUDIO_RSERVER_CONF`
 - `MSTICPY_CONFIG_FILE`
 
-Multi-user mode variables live in [.env.sample](/home/swat/docker/2602rockerdfir/.env.sample):
+Multi-user mode variables live in [.env.multi.sample](/home/swat/docker/2602rockerdfir/.env.multi.sample):
 
 - `RSTUDIO_USERS_FILE`
 - `RSTUDIO_BASE_UID`
