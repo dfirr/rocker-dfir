@@ -33,10 +33,11 @@ ARG R_PACKAGES_FILE="r_packages.txt"
 ARG GH_PACKAGES_FILE="gh_packages.txt"
 COPY ${R_PACKAGES_FILE} /tmp/r_packages.txt
 COPY ${GH_PACKAGES_FILE} /tmp/gh_packages.txt
-RUN gh_list="$(awk 'NF && $1 !~ /^#/' /tmp/gh_packages.txt | tr '\n' ' ')" \
- && if [ -n "${gh_list}" ]; then installGithub.r ${gh_list}; fi
+RUN install2.r --error --skipinstalled remotes
 RUN r_list="$(awk 'NF && $1 !~ /^#/' /tmp/r_packages.txt | tr '\n' ' ')" \
  && if [ -n "${r_list}" ]; then install2.r --error --skipinstalled --deps TRUE ${r_list}; fi
+RUN gh_list="$(awk 'NF && $1 !~ /^#/' /tmp/gh_packages.txt | tr '\n' ' ')" \
+ && if [ -n "${gh_list}" ]; then installGithub.r ${gh_list}; fi
 
 # Copy fonts to /etc/rstudio/fonts
 RUN cp /usr/share/fonts/opentype/ipafont-mincho/ipam.ttf /etc/rstudio/fonts/ipam.ttf && \
