@@ -14,10 +14,10 @@ services:
     volumes:
       - type: bind
         source: "${RSTUDIO_CONFIG_DIR:?RSTUDIO_CONFIG_DIR is required}"
-        target: "/home/rstudio/.config"
+        target: /home/rstudio/.config
       - type: bind
         source: "${CASES_DIR:?CASES_DIR is required}"
-        target: "/home/rstudio/cases"
+        target: /home/rstudio/cases
       - type: bind
         source: "${RSTUDIO_RSERVER_CONF:?RSTUDIO_RSERVER_CONF is required}"
         target: /etc/rstudio/rserver.conf

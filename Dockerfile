@@ -4,10 +4,12 @@ FROM rocker/tidyverse:latest
 # Install Japanese fonts and required tools
 RUN apt update && \
     apt install --no-install-recommends -y \
+        acl \
         ca-certificates \
         bzip2 unzip wget \
         libpng-dev libmagick++-dev \
         python3 python3-pip python3-venv \
+        openssh-client \
         git gh curl jq \
         fonts-ipafont \
         tini \
@@ -31,10 +33,11 @@ ARG R_PACKAGES_FILE="r_packages.txt"
 ARG GH_PACKAGES_FILE="gh_packages.txt"
 COPY ${R_PACKAGES_FILE} /tmp/r_packages.txt
 COPY ${GH_PACKAGES_FILE} /tmp/gh_packages.txt
-RUN gh_list="$(awk 'NF && $1 !~ /^#/' /tmp/gh_packages.txt | tr '\n' ' ')" \
- && if [ -n "${gh_list}" ]; then installGithub.r ${gh_list}; fi
+RUN install2.r --error --skipinstalled remotes
 RUN r_list="$(awk 'NF && $1 !~ /^#/' /tmp/r_packages.txt | tr '\n' ' ')" \
  && if [ -n "${r_list}" ]; then install2.r --error --skipinstalled --deps TRUE ${r_list}; fi
+RUN gh_list="$(awk 'NF && $1 !~ /^#/' /tmp/gh_packages.txt | tr '\n' ' ')" \
+ && if [ -n "${gh_list}" ]; then installGithub.r ${gh_list}; fi
 
 # Copy fonts to /etc/rstudio/fonts
 RUN cp /usr/share/fonts/opentype/ipafont-mincho/ipam.ttf /etc/rstudio/fonts/ipam.ttf && \
@@ -63,6 +66,7 @@ COPY pip_requirements.txt /tmp/pip_requirements.txt
 RUN uv pip install --python "${RETICULATE_VENV}/bin/python" -r /tmp/pip_requirements.txt \
  && rm -f /tmp/pip_requirements.txt
 
-# Ensure MSTICPy config directory exists for rstudio
-RUN mkdir -p /home/rstudio/.msticpy \
- && chown -R rstudio:rstudio /home/rstudio/.msticpy
+# Provision multi-user accounts and homes at container startup
+COPY container/init/30-provision-users.sh /etc/cont-init.d/30-provision-users
+RUN chmod +x /etc/cont-init.d/30-provision-users \
+ && mkdir -p /etc/rstudio/skel-config /etc/rstudio/skel-msticpy /srv/rstudio-home /srv/cases
