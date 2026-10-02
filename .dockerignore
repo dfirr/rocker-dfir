@@ -1,0 +1,7 @@
+.git
+.env
+compose.users.yaml
+rstudio_home
+rstudio_users/users.conf
+rstudio_config
+msticpy_config/msticpyconfig.yaml

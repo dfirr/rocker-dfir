@@ -1,0 +1,11 @@
+# One user per line:
+# username:uid:gid:password_hash[:shell]
+# Use the same uid/gid as the host account if you want bind-mounted files
+# to keep natural ownership on the host.
+#
+# Generate a password hash with:
+#   openssl passwd -6 'replace-with-a-password'
+#
+# Examples:
+# swat:1000:1000:$6$rounds=656000$replace$with_a_real_hash:/bin/bash
+# analyst:1001:1001:$6$rounds=656000$replace$with_a_real_hash:/bin/bash
