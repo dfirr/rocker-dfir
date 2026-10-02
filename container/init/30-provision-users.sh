@@ -9,7 +9,6 @@ CASES_ROOT="${CASES_ROOT_PATH:-/srv/cases}"
 SHARED_CASES_ROOT="${SHARED_CASES_ROOT_PATH:-/srv/shared-cases}"
 SHARED_CASES_GROUP="${SHARED_CASES_GROUP_NAME:-rstudio-shared}"
 SHARED_CASES_GID="${SHARED_CASES_GROUP_GID:-}"
-SHARED_CASES_GROUP_EFFECTIVE=""
 
 log() {
   echo "[provision-users] $*"
@@ -18,24 +17,33 @@ log() {
 copy_tree_no_clobber() {
   local src="$1"
   local dst="$2"
+  local username="$3"
 
   if [[ ! -d "$src" ]]; then
     return 0
   fi
 
-  mkdir -p "$dst"
-  cp -a --no-clobber "$src"/. "$dst"/
+  # Read administrator defaults as root, but extract only as the target user.
+  # Exclude credentials before streaming them into the home.
+  tar -C "$src" --exclude='./gh/hosts.yml' -cf - . |
+    runuser -u "$username" -- tar --skip-old-files \
+      --no-same-owner --no-same-permissions -xf - -C "$dst"
 }
 
-chown_if_exists() {
-  local owner="$1"
-  shift
-
-  for path in "$@"; do
-    if [[ -e "$path" ]]; then
-      chown -R "$owner" "$path"
-    fi
-  done
+initialize_home() {
+  set -euo pipefail
+  umask 077
+  local home_dir="$1" case_dir="$2" shared_dir="$3"
+  mkdir -p "$home_dir/R/library" "$home_dir/.config" "$home_dir/.msticpy" "$home_dir/.ssh"
+  if [[ ! -e "$home_dir/.Renviron" && ! -L "$home_dir/.Renviron" ]]; then
+    printf 'R_LIBS_USER=%s/R/library\nR_LIBS=%s/R/library\n' "$home_dir" "$home_dir" > "$home_dir/.Renviron"
+  fi
+  # Preserve existing known_hosts, including links, without touching their targets.
+  if [[ ! -e "$home_dir/.ssh/known_hosts" && ! -L "$home_dir/.ssh/known_hosts" ]]; then
+    touch "$home_dir/.ssh/known_hosts"
+  fi
+  ln -sfnT "$case_dir" "$home_dir/cases"
+  ln -sfnT "$shared_dir" "$home_dir/shared_cases"
 }
 
 group_name_for_gid() {
@@ -103,7 +111,6 @@ ensure_user() {
   local case_dir="${CASES_ROOT}/${username}"
   local primary_group
   local user_group
-  local had_gh_hosts=0
 
   primary_group="$(ensure_group "$username" "$gid_value")"
 
@@ -115,58 +122,45 @@ ensure_user() {
     fi
   else
     log "Creating user ${username}"
-    useradd -m -d "$home_dir" -s "$shell_path" -u "$uid_value" -g "$primary_group" "$username"
+    useradd -M -d "$home_dir" -s "$shell_path" -u "$uid_value" -g "$primary_group" "$username"
   fi
 
   if [[ -n "$password_hash" ]]; then
     usermod -p "$password_hash" "$username"
   fi
 
-  if getent group staff >/dev/null 2>&1; then
-    usermod -a -G staff "$username"
+  if id -nG "$username" | tr ' ' '\n' | grep -qx staff; then
+    gpasswd -d "$username" staff
   fi
 
   user_group="$(id -gn "$username")"
 
-  install -d -m 0755 -o "$username" -g "$user_group" "$home_dir"
-  install -d -m 0755 -o "$username" -g "$user_group" "$case_dir"
-
-  if [[ -f "$home_dir/.config/gh/hosts.yml" ]]; then
-    had_gh_hosts=1
-  fi
-
-  copy_tree_no_clobber "$SKEL_CONFIG_DIR" "$home_dir/.config"
-  copy_tree_no_clobber "$SKEL_MSTICPY_DIR" "$home_dir/.msticpy"
-
-  if [[ "$had_gh_hosts" -eq 0 ]] && [[ -f "$SKEL_CONFIG_DIR/gh/hosts.yml" ]]; then
-    rm -f "$home_dir/.config/gh/hosts.yml"
-  fi
-
-  if [[ -f "$home_dir/.msticpy/msticpyconfig.yaml.sample" ]] && [[ ! -f "$home_dir/.msticpy/msticpyconfig.yaml" ]]; then
-    cp -n "$home_dir/.msticpy/msticpyconfig.yaml.sample" "$home_dir/.msticpy/msticpyconfig.yaml"
-  fi
-
-  install -d -m 0700 -o "$username" -g "$user_group" "$home_dir/.ssh"
-  touch "$home_dir/.ssh/known_hosts"
-  chown "$username:$user_group" "$home_dir/.ssh/known_hosts"
-  chmod 0600 "$home_dir/.ssh/known_hosts"
-
-  ln -sfn "$case_dir" "$home_dir/cases"
-  ln -sfn "$SHARED_CASES_ROOT" "$home_dir/shared_cases"
-
-  chown_if_exists "$username:$user_group" "$home_dir/.config" "$home_dir/.msticpy" "$home_dir/.ssh" "$case_dir"
-  chown -h "$username:$user_group" "$home_dir/cases"
-  chown -h "$username:$user_group" "$home_dir/shared_cases"
+  [[ ! -L "$home_dir" ]] || { log "Refusing symlink home: ${username}"; exit 1; }
+  install -d -m 0700 -o "$username" -g "$user_group" "$home_dir"
+  mountpoint -q "$case_dir" || { log "Missing cases bind mount for ${username}"; exit 1; }
+  runuser -u "$username" -- bash --noprofile --norc -c \
+    "$(declare -f initialize_home); initialize_home \"\$@\"" -- "$home_dir" "$case_dir" "$SHARED_CASES_ROOT"
+  copy_tree_no_clobber "$SKEL_CONFIG_DIR" "$home_dir/.config" "$username"
+  copy_tree_no_clobber "$SKEL_MSTICPY_DIR" "$home_dir/.msticpy" "$username"
+  runuser -u "$username" -- bash --noprofile --norc -c '
+    set -euo pipefail
+    umask 077
+    if [[ -f "$HOME/.msticpy/msticpyconfig.yaml.sample" && ! -e "$HOME/.msticpy/msticpyconfig.yaml" && ! -L "$HOME/.msticpy/msticpyconfig.yaml" ]]; then
+      cp -n "$HOME/.msticpy/msticpyconfig.yaml.sample" "$HOME/.msticpy/msticpyconfig.yaml"
+    fi'
 }
 
 main() {
   local line username uid_value gid_value password_hash shell_path shared_group_name
-  local -a provisioned_users=()
+  local -a provisioned_users=() entries=()
+  local -A seen_names=() seen_uids=()
 
-  install -d -m 0755 "$HOME_ROOT" "$CASES_ROOT"
+  install -d -m 0755 -o root -g root "$HOME_ROOT" "$CASES_ROOT"
 
   if [[ ! -f "$USERS_FILE" ]]; then
-    log "No users file found at ${USERS_FILE}; leaving built-in users unchanged"
+    if [[ "${RSTUDIO_MULTI_USER:-false}" == true ]]; then
+      log "Multi-user mode requires ${USERS_FILE}"; exit 1
+    fi
     return 0
   fi
 
@@ -181,20 +175,54 @@ main() {
     IFS=':' read -r username uid_value gid_value password_hash shell_path <<<"$line"
 
     if [[ -z "$username" ]] || [[ -z "${uid_value:-}" ]] || [[ -z "${gid_value:-}" ]] || [[ -z "${password_hash:-}" ]]; then
-      log "Skipping invalid entry; expected username:uid:gid:password_hash[:shell]"
-      continue
+      log "Invalid entry; expected username:uid:gid:password_hash[:shell]"; exit 1
     fi
 
     if [[ -z "${shell_path:-}" ]]; then
       shell_path="/bin/bash"
     fi
 
-    ensure_user "$username" "$uid_value" "$gid_value" "$password_hash" "$shell_path"
+    if [[ ! "$username" =~ ^[a-z_][a-z0-9_-]*$ ]] || [[ "$username" == rstudio ]] ||
+       [[ ! "$uid_value" =~ ^[1-9][0-9]*$ ]] || (( uid_value < 1000 )) ||
+       [[ ! "$gid_value" =~ ^[1-9][0-9]*$ ]] || (( gid_value < 1000 )) ||
+       [[ -n "${seen_names[$username]:-}" || -n "${seen_uids[$uid_value]:-}" ]] ||
+       [[ ! -x "$shell_path" ]]; then
+      log "Invalid or duplicate account: ${username}"; exit 1
+    fi
+    seen_names[$username]=1
+    seen_uids[$uid_value]=1
+    if getent passwd "$username" >/dev/null && [[ "$(id -u "$username")" -lt 1000 ]]; then
+      log "Refusing to modify system account ${username}"; exit 1
+    fi
+    if id "$username" >/dev/null 2>&1 && [[ "$(id -u "$username")" != "$uid_value" ]]; then
+      log "UID changes require separate administrator migration: ${username}"; exit 1
+    fi
+    local uid_owner
+    uid_owner="$(getent passwd "$uid_value" | cut -d: -f1 || true)"
+    if [[ -n "$uid_owner" && "$uid_owner" != "$username" ]]; then
+      log "UID already belongs to ${uid_owner}"; exit 1
+    fi
+    mountpoint -q "$CASES_ROOT/$username" || { log "Missing cases bind mount for ${username}"; exit 1; }
+    entries+=("$username:$uid_value:$gid_value:$password_hash:$shell_path")
     provisioned_users+=("$username")
   done <"$USERS_FILE"
 
+  # Restrict RStudio authentication to explicitly registered accounts.
+  getent group rstudio-login >/dev/null || groupadd --system rstudio-login
+  gpasswd -M '' rstudio-login
+  usermod -L rstudio
+  while IFS=: read -r username _ uid_value _ _ home_dir _; do
+    if [[ "$home_dir" == "$HOME_ROOT/"* && -z "${seen_names[$username]:-}" ]]; then
+      usermod -L -e 1970-01-02 "$username"
+    fi
+  done < /etc/passwd
+  for line in "${entries[@]}"; do
+    IFS=':' read -r username uid_value gid_value password_hash shell_path <<< "$line"
+    ensure_user "$username" "$uid_value" "$gid_value" "$password_hash" "${shell_path:-/bin/bash}"
+    usermod -e '' -a -G rstudio-login "$username"
+  done
+
   shared_group_name="$(ensure_shared_group)"
-  SHARED_CASES_GROUP_EFFECTIVE="$shared_group_name"
 
   if [[ -n "$SHARED_CASES_GID" ]]; then
     groupmod -o -g "$SHARED_CASES_GID" "$shared_group_name"
@@ -209,12 +237,8 @@ main() {
   find "$SHARED_CASES_ROOT" -type d -exec chmod 2775 {} +
   find "$SHARED_CASES_ROOT" -type f -exec chmod g+rw {} +
 
-  if command -v setfacl >/dev/null 2>&1; then
-    setfacl -b "$SHARED_CASES_ROOT"
-    setfacl -m "g:${shared_group_name}:rwx" "$SHARED_CASES_ROOT"
-    setfacl -d -m "g:${shared_group_name}:rwx" "$SHARED_CASES_ROOT"
-    setfacl -d -m "o::rx" "$SHARED_CASES_ROOT"
-  fi
+  find "$SHARED_CASES_ROOT" -type d -exec setfacl -m \
+    "g:${shared_group_name}:rwx,d:u::rwx,d:g::rwx,d:g:${shared_group_name}:rwx,d:m::rwx,d:o::rx" {} +
 }
 
 main "$@"

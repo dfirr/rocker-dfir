@@ -70,3 +70,7 @@ RUN uv pip install --python "${RETICULATE_VENV}/bin/python" -r /tmp/pip_requirem
 COPY container/init/30-provision-users.sh /etc/cont-init.d/30-provision-users
 RUN chmod +x /etc/cont-init.d/30-provision-users \
  && mkdir -p /etc/rstudio/skel-config /etc/rstudio/skel-msticpy /srv/rstudio-home /srv/cases
+
+# Shared environments are maintained through image builds, not user sessions.
+RUN find /opt/r /opt/uv /usr/local/lib/R/site-library ! -user root -exec chown root:root {} + \
+ && find /opt/r /opt/uv /usr/local/lib/R/site-library -perm /022 -exec chmod go-w {} +

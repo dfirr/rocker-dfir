@@ -19,5 +19,6 @@ corp_ca/*
 !corp_ca/
 !corp_ca/.gitkeep
 rstudio_users/users.conf
+compose.users.yaml
 rstudio_home/*
 !rstudio_home/.gitkeep

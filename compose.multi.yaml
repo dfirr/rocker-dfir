@@ -7,6 +7,7 @@ services:
         - GH_PACKAGES_FILE=$GH_PACKAGES_FILE
     container_name: rss
     environment:
+      - RSTUDIO_MULTI_USER=true
       - USERID=${RSTUDIO_BASE_UID:-999}
       - GROUPID=${RSTUDIO_BASE_GID:-999}
       - SHARED_CASES_GROUP_GID=${SHARED_CASES_GROUP_GID:-}
@@ -26,13 +27,10 @@ services:
         source: "${RSTUDIO_HOME_ROOT:?RSTUDIO_HOME_ROOT is required}"
         target: /srv/rstudio-home
       - type: bind
-        source: "${CASES_ROOT_DIR:?CASES_ROOT_DIR is required}"
-        target: /srv/cases
-      - type: bind
         source: "${SHARED_CASES_DIR:?SHARED_CASES_DIR is required}"
         target: /srv/shared-cases
       - type: bind
-        source: "${RSTUDIO_RSERVER_CONF:?RSTUDIO_RSERVER_CONF is required}"
+        source: "${RSTUDIO_MULTI_RSERVER_CONF:-./rstudio_etc/rserver.multi.conf}"
         target: /etc/rstudio/rserver.conf
         read_only: true
       - type: bind

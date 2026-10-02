@@ -20,8 +20,8 @@ Use this when one person will use the container.
 
 Files:
 
-- [compose.yaml](/home/swat/docker/2602rockerdfir/compose.yaml)
-- [.env.sample](/home/swat/docker/2602rockerdfir/.env.sample)
+- [compose.yaml](compose.yaml)
+- [.env.sample](.env.sample)
 
 Setup:
 
@@ -47,9 +47,10 @@ Use this when several Linux users should log in separately and keep host-aligned
 
 Files:
 
-- [compose.multi.yaml](/home/swat/docker/2602rockerdfir/compose.multi.yaml)
-- [.env.multi.sample](/home/swat/docker/2602rockerdfir/.env.multi.sample)
-- [rstudio_users/users.conf.sample](/home/swat/docker/2602rockerdfir/rstudio_users/users.conf.sample)
+- [compose.multi.yaml](compose.multi.yaml)
+- [.env.multi.sample](.env.multi.sample)
+- [rstudio_users/users.conf.sample](rstudio_users/users.conf.sample)
+- [DESIGN.md](DESIGN.md)
 
 Setup:
 
@@ -59,10 +60,19 @@ Setup:
    - `cp rstudio_users/users.conf.sample rstudio_users/users.conf`
    - `cp msticpy_config/msticpyconfig.yaml.sample msticpy_config/msticpyconfig.yaml`
    - Create `rstudio_home/` if you want to persist homes inside the repository path
-   - Create `${HOME}/cases/` or another directory referenced by `CASES_ROOT_DIR`
    - Create `${HOME}/shared_cases/` or another directory referenced by `SHARED_CASES_DIR`
+   - Generate mounts for existing host accounts (requires Bash and jq on the host):
+
+     ```bash
+     sudo bash scripts/prepare-users.sh alice bob > compose.users.yaml
+     ```
+
+     This creates missing `~/cases` directories with mode `0700` and the host account's
+     UID/GID, preserving ownership and permissions of existing directories. Account
+     templates are printed to stderr; replace `<password_hash>` in `users.conf`.
 3. Edit `rstudio_users/users.conf`:
    - Add one line per user in the form `username:uid:gid:password_hash[:shell]`
+   - Register ordinary host accounts with UID and primary GID of at least 1000; `rstudio` is reserved
    - Use the same `uid` and `gid` as the host OS account when you want bind-mounted files to keep natural ownership on the host
    - Generate password hashes with `openssl passwd -6 'replace-with-a-password'`
 4. Edit `.env`:
@@ -71,16 +81,18 @@ Setup:
 5. Build and start:
 
 ```bash
-docker compose -f compose.multi.yaml --env-file .env build
-docker compose -f compose.multi.yaml --env-file .env up -d
+docker compose -f compose.multi.yaml -f compose.users.yaml --env-file .env build
+docker compose -f compose.multi.yaml -f compose.users.yaml --env-file .env up -d
 ```
 
 Access RStudio at `http://localhost:8787` and log in with one of the usernames defined in `rstudio_users/users.conf`.
 
-If you add or remove users later, update `rstudio_users/users.conf` and recreate the container:
+If you add or remove users later, update `rstudio_users/users.conf`, regenerate
+`compose.users.yaml` for the complete current user list, and recreate the container.
+Removed users cannot log in; their persistent homes and host cases are retained.
 
 ```bash
-docker compose -f compose.multi.yaml --env-file .env up -d --force-recreate
+docker compose -f compose.multi.yaml -f compose.users.yaml --env-file .env up -d --force-recreate
 ```
 
 Example `users.conf`:
@@ -98,11 +110,11 @@ openssl passwd -6 'replace-with-a-password'
 
 ## Shared Image
 
-Both modes use the same [Dockerfile](/home/swat/docker/2602rockerdfir/Dockerfile) and therefore share:
+Both modes use the same [Dockerfile](Dockerfile) and therefore share:
 
-- R packages from [r_packages.txt](/home/swat/docker/2602rockerdfir/r_packages.txt)
-- GitHub R packages from [gh_packages.txt](/home/swat/docker/2602rockerdfir/gh_packages.txt)
-- Python packages from [pip_requirements.txt](/home/swat/docker/2602rockerdfir/pip_requirements.txt)
+- R packages from [r_packages.txt](r_packages.txt)
+- GitHub R packages from [gh_packages.txt](gh_packages.txt)
+- Python packages from [pip_requirements.txt](pip_requirements.txt)
 - Japanese fonts and RStudio configuration assets
 - Corporate CA support through `corp_ca/`
 - Git, GitHub CLI, and `openssh-client`
@@ -121,12 +133,15 @@ This mode has the lowest setup overhead and is the default mode for this reposit
 - `RSTUDIO_USERS_FILE` is mounted to `/etc/rstudio/users.conf` and processed at container startup
 - `RSTUDIO_BASE_UID` / `RSTUDIO_BASE_GID` move the built-in `rstudio` account out of the `1000+` range
 - `RSTUDIO_HOME_ROOT` is mounted to `/srv/rstudio-home`; each user home is created under `/srv/rstudio-home/<username>`
-- `CASES_ROOT_DIR` is mounted to `/srv/cases`; each user gets `~/cases -> /srv/cases/<username>`
+- Each host account's `~/cases` is mounted to `/srv/cases/<username>` using the generated override; each user gets `~/cases -> /srv/cases/<username>`
 - `SHARED_CASES_DIR` is mounted to `/srv/shared-cases`; each user gets `~/shared_cases -> /srv/shared-cases`
 - `RSTUDIO_CONFIG_DIR` is copied into each user's `~/.config` on first startup without overwriting existing files
 - `MSTICPY_CONFIG_DIR` is copied into each user's `~/.msticpy` on first startup without overwriting existing files
 
-RStudio defaults `initial_working_directory`, `default_project_location`, and `default_open_project_location` to `~/shared_cases` so shared teaching material is visible immediately after login.
+RStudio defaults its working and project directories to `~/cases` in both modes.
+Persistent container homes have mode `0700`. Host cases permissions are preserved.
+Multi-user mode requires rootful Docker without UID/GID remapping, and its dedicated
+`rserver.multi.conf` restricts logins to explicitly registered users.
 
 `shared_cases` is managed as a common group-writable directory. Files created there keep the creator's UID and the shared group GID. On the host, ownership is stored numerically, so matching host/container UID and GID values matters.
 
@@ -144,7 +159,9 @@ SSH is enabled in the image by installing `openssh-client`.
 - In single-user mode, the effective user is `rstudio`
 - In multi-user mode, each user manages their own `~/.ssh`
 
-Because home directories are bind-mounted or persisted, `~/.ssh` survives container recreation.
+In multi-user mode, persistent container homes keep `~/.ssh` across recreation.
+In single-user mode, persist `/home/rstudio` separately if SSH keys must survive recreation.
+GitHub access and SSH authentication are optional.
 
 Typical workflow after first login:
 
@@ -193,7 +210,7 @@ PY"
 
 ## Config Files
 
-Single-user mode variables live in [.env.sample](/home/swat/docker/2602rockerdfir/.env.sample):
+Single-user mode variables live in [.env.sample](.env.sample):
 
 - `PASSWORD`
 - `CASES_DIR`
@@ -201,18 +218,43 @@ Single-user mode variables live in [.env.sample](/home/swat/docker/2602rockerdfi
 - `RSTUDIO_RSERVER_CONF`
 - `MSTICPY_CONFIG_FILE`
 
-Multi-user mode variables live in [.env.multi.sample](/home/swat/docker/2602rockerdfir/.env.multi.sample):
+Multi-user mode variables live in [.env.multi.sample](.env.multi.sample):
 
 - `RSTUDIO_USERS_FILE`
 - `RSTUDIO_BASE_UID`
 - `RSTUDIO_BASE_GID`
 - `RSTUDIO_HOME_ROOT`
-- `CASES_ROOT_DIR`
 - `SHARED_CASES_DIR`
 - `SHARED_CASES_GROUP_GID`
 - `RSTUDIO_CONFIG_DIR`
-- `RSTUDIO_RSERVER_CONF`
+- `RSTUDIO_MULTI_RSERVER_CONF`
 - `MSTICPY_CONFIG_DIR`
+
+## Personal Packages (Multi-User)
+
+The shared R/Python environments are writable only by the administrator through
+image builds. R installs user packages into `~/R/library` by default:
+
+```r
+install.packages("package_name")
+```
+
+To use a personal Python environment, run in the RStudio terminal:
+
+```bash
+uv venv ~/.venvs/analysis --python /opt/r/bin/python
+uv pip install --python ~/.venvs/analysis/bin/python package_name
+```
+
+Then select it in R before initializing Python:
+
+```r
+Sys.setenv(RETICULATE_PYTHON = path.expand("~/.venvs/analysis/bin/python"))
+```
+
+Existing `.Renviron` files are preserved; if needed, add both `R_LIBS_USER=~/R/library`
+and `R_LIBS=~/R/library`
+to your own configuration. OS dependencies require an administrator image update.
 
 Both modes also use:
 
@@ -224,3 +266,5 @@ Both modes also use:
 - GitHub packages require network access during build
 - `installGithub.r` comes from the Rocker base image (littler)
 - If you change `r_packages.txt`, `gh_packages.txt`, or `corp_ca/*.crt`, rebuild the image
+- Multi-user access is intended for trusted organization members over the internal
+  network. This repository serves HTTP; network access restrictions are managed externally.
